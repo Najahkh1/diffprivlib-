@@ -1,114 +1,88 @@
-#  Differential Privacy Evaluation using `diffprivlib`
+# Differential Privacy
 
-This project evaluates how different machine learning models perform when trained with **differential privacy (DP)** using IBM’s [`diffprivlib`](https://github.com/IBM/differential-privacy-library). All models were trained and tested on the **same dataset**: the [UCI Adult Income Dataset](https://archive.ics.uci.edu/ml/datasets/adult).
+## Overview
+Differential Privacy (DP) is a formally defined privacy technique that protects individuals in a dataset from re-identification, even when the dataset is analyzed or shared with third parties ([Wikipedia contributors, 2025b](https://en.wikipedia.org/wiki/Differential_privacy)).  
+It works by adding controlled random noise to the results of queries, statistics, or machine learning models. This preserves trends and patterns while making it impossible to determine with certainty whether specific data belongs to an individual.  
+The concept was developed to provide a mathematically provable privacy guarantee, in contrast to traditional anonymization, which can be vulnerable to re-identification attacks when datasets are combined ([Dwork & Microsoft Research](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/dwork.pdf), [Dwork & Roth, 2014](https://www.cis.upenn.edu/~aaroth/Papers/privacybook.pdf)).
 
----
+## Formal definition
+Differential Privacy is often defined in terms of the **ε-differential privacy criterion (epsilon)**:
 
-##  What is `diffprivlib`?
+> An algorithm *M* satisfies ε-differential privacy if for all datasets D1 and D2 that differ in only one record, and for all possible outputs S:  
+> *(Dwork & Microsoft Research, n.d.-b; Dwork & Roth, 2014)*
 
-`diffprivlib` is a privacy-preserving machine learning library based on scikit-learn. It ensures individuals' data cannot be inferred even during model training.
+Here, **ε** determines the degree of privacy:
+- **Small ε** → stronger privacy, more noise
+- **Large ε** → weaker privacy, less noise ([Wikipedia contributors, 2025b](https://en.wikipedia.org/wiki/Differential_privacy))
 
- **Key strengths:**
+## Operation and example
+Suppose a health authority wants to know how many residents of a region have undergone a certain medical treatment.  
+Without DP, the exact number is reported (e.g., `100`).  
+With DP, a slightly altered number is published (e.g., `103`), where the alteration is calibrated so that:
+- Statistical insights are preserved
+- The presence or absence of an individual cannot be determined ([Private-AI, 2022](https://www.private-ai.com/en/blog/the-basics-of-differential-privacy-its-applicability-to-nlu-models))
 
-- Easy integration with scikit-learn workflows  
-- Adds mathematically calibrated noise to protect data  
-- Supports common models:
-  - `LogisticRegression`
-  - `DecisionTreeClassifier`, `RandomForestClassifier`
-  - `GaussianNB`, `LinearRegression`
-  - `PCA`, `KMeans`, `StandardScaler`
+### Mechanisms for adding noise
+- **Laplace mechanism**: Adds noise based on a Laplace distribution. Suitable for protecting count tables, averages, and other numerical queries with bounded sensitivity ([Wikipedia contributors, 2025b](https://en.wikipedia.org/wiki/Differential_privacy))
+- **Gaussian mechanism**: Adds noise based on a normal distribution. Suitable when a slightly less strict privacy guarantee is accepted ((ε, δ)-differential privacy) ([Wikipedia contributors, 2025c](https://en.wikipedia.org/wiki/Differential_privacy))
+- **Exponential mechanism**: Selects from a set of outcomes based on a scoring function. Used for selecting categorical outcomes or choices, e.g., choosing the most popular category without revealing exact counts ([Wikipedia contributors, 2025c](https://en.wikipedia.org/wiki/Differential_privacy))
 
- **Limitations:**
+## Key properties
+- **Mathematical guarantee** – Protection remains in place regardless of the attacker’s external knowledge ([Dwork & Microsoft Research](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/dwork.pdf), [Dwork & Roth, 2014](https://www.cis.upenn.edu/~aaroth/Papers/privacybook.pdf))
+- **Composition property** – Privacy loss from multiple queries can be quantified ([Wikipedia contributors, 2025c](https://en.wikipedia.org/wiki/Differential_privacy))
+- **Post-processing immunity** – Additional computations on the output do not increase the privacy risk ([Wikipedia contributors, 2025c](https://en.wikipedia.org/wiki/Differential_privacy))
 
-- No support for deep learning, XGBoost, SVM  
-- Manual configuration required for `bounds` and `data_norm`  
-- Not suitable for NLP or image-based tasks  
+## Use cases
+| Sector              | Example application |
+|---------------------|---------------------|
+| Healthcare          | Anonymizing patient data for research |
+| Technology companies| Analyzing user behavior (e.g., in iOS or Chrome) without storing individual profiles |
+| Government          | Publishing census data with protection against re-identification |
+| Education & research| Safely sharing research data while ensuring respondent privacy |
+| Financial sector    | Analyzing transaction patterns without exposing individual customer data |
 
----
+## Tools & Libraries
+| Tool                  | Description |
+|-----------------------|-------------|
+| [TensorFlow Privacy](https://blog.tensorflow.org/2019/03/introducing-tensorflow-privacy-learning.html) | Extension for TensorFlow to train deep learning models with Differential Privacy (DP-SGD) |
+| [Opacus](https://github.com/pytorch/opacus) | Differential Privacy training for PyTorch models, optimized for large neural networks |
+| [SmartNoise SDK](https://github.com/opendp/smartnoise-sdk) | Toolkit for executing DP queries on databases and tables (SQL & Python) |
+| [Diffprivlib (IBM)](https://github.com/IBM/differential-privacy-library) | Python library for DP in classical machine learning models and statistics (scikit-learn style) |
+| [PyDP](https://github.com/OpenMined/PyDP) | Python binding of Google’s DP engine, suitable for statistical calculations with privacy protection |
+| [PySyft (DP module)](https://github.com/OpenMined/PySyft) | Framework for federated learning and data analysis with DP support |
+| Tumult Analytics       | Open-source Python library for safe, scalable data analysis with differential privacy |
 
-## What is Epsilon (𝜖)?
+## Advantages
+- **Strong privacy protection** – Impossible to confirm the presence of an individual
+- **Regulatory compliance** – Supports GDPR, AI ACT, and other privacy legislation
+- **Risk-free data sharing** – Enables open data publication without re-identification risks
+- **Mathematical foundation** – Formal guarantee instead of anonymization
 
-Epsilon (𝜖) is the key parameter in differential privacy:
+## Challenges
+- **Privacy–accuracy trade-off** – More noise increases privacy but reduces data quality
+- **Technical complexity** – Correct implementation requires specialized knowledge
+- **Limitations in small datasets** – Less effective with low counts or real-time monitoring
+- **Parameter choice** – Choosing ε is context-dependent and non-trivial
 
-- **Low 𝜖 (e.g. 0.1)** → Stronger privacy, more noise, lower accuracy  
-- **High 𝜖 (e.g. 10)** → Weaker privacy, less noise, higher accuracy  
--  **𝜖 = 1.0** is a commonly accepted balance between privacy and performance
+## Best practices
+1. Start with a clear privacy budget (ε value) and document choices
+2. Use open-source libraries instead of implementing your own DP mechanisms
+3. Monitor cumulative privacy loss with multiple queries
+4. Combine DP with other security measures such as access control and encryption
+5. Test the impact of noise on data usability before sharing results
 
-> Think of 𝜖 as a *privacy budget*: the smaller it is, the more privacy you spend per query.
+## Conclusion
+Differential Privacy provides a robust, formally proven method for combining data analysis with strong privacy protection. By adding noise, organizations can share insights without exposing individuals to re-identification risks.  
+It is an important tool in privacy-by-design strategies and is increasingly applied in both public and commercial data processing.
 
----
-
-##  Model Evaluation: With vs. Without DP (𝜖 = 1.0)
-
-All models were trained on the same dataset. Below are the accuracy comparisons:
-
-| Model               | Without DP | With DP | Accuracy Drop |
-|--------------------|------------|---------|----------------|
-| Logistic Regression | 81.25%     | 79.50%  | -1.75%         |
-| Decision Tree       | 81.86%     | 77.49%  | -4.37%         |
-
-➡ DP was applied with 𝜖 = 1.0 for a fair and realistic comparison.
-
----
-
-##  Interpretation
-
-- **Logistic Regression** remains very stable with minimal accuracy loss  
-- **Decision Trees** are more sensitive due to the effect of noise on split decisions  
-- Overall, results are **strong and usable**, even under privacy constraints  
-- Confirms that **𝜖 = 1.0 is a reasonable trade-off**
-
----
-
-##  Linear Regression and R² Score
-
-| Model             | R² Score |
-|------------------|----------|
-| Non-private       | 0.03     |
-| With DP (𝜖 = 1.0) | -0.09    |
-
-- A **negative R²** means the model performs worse than simply predicting the mean of the target  
-- ➤ DP seems to work **less well for regression models** than for classification  
-- Likely due to higher sensitivity of numeric predictions to added noise  
-
----
-
-##  Naive Bayes Results
-
-| Model                      | Epsilon | Accuracy |
-|---------------------------|---------|----------|
-| Non-private GaussianNB    | —       | 79.64%   |
-| DP GaussianNB (𝜖 = 1.0)    | 1.0     | 79.93%   |
-| DP GaussianNB (𝜖 = 0.1)    | 0.1     | 78.42%   |
-
-- Excellent robustness even at **𝜖 = 0.1**  
-- GaussianNB proves effective under strict privacy constraints  
-- Accuracy varies slightly with each run due to random noise, as expected with DP  
-
----
-
-##  Privacy Budgeting and Slack
-
-When applying DP in multiple steps (e.g. scaler + PCA + classifier), your **epsilon budget is consumed cumulatively**.
-
-To manage this:
-
-- Use `BudgetAccountant` to track and control spend  
-- Introduce a **`slack`** (e.g. `slack=0.001`) to optimize usage over multiple queries  
-  - Allows more operations within the same budget  
-  - Accepts a minimal probability of error (delta > 0)  
-  - Useful for pipelines or repeated queries  
-
----
-
-##  Conclusion
-
-- `diffprivlib` is a powerful tool for **privacy-aware machine learning** on structured data  
-- **Logistic Regression** performs best under DP  
-- **Decision Trees** remain usable but are more impacted by noise  
-- **GaussianNB** performs surprisingly well, even at low epsilon  
-- **Linear Regression** under DP yields weaker results — better suited for classification tasks  
-- **𝜖 = 1.0** remains a practical and responsible default setting  
-
----
-
+## References
+- [Dwork, C. & Microsoft Research. Differential privacy (PDF)](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/dwork.pdf)
+- [Dwork, C., & Roth, A. (2014). The algorithmic foundations of differential privacy (PDF)](https://www.cis.upenn.edu/~aaroth/Papers/privacybook.pdf)
+- [IBM Diffprivlib GitHub](https://github.com/IBM/differential-privacy-library)
+- [Introducing TensorFlow Privacy](https://blog.tensorflow.org/2019/03/introducing-tensorflow-privacy-learning.html)
+- [OpenDP SmartNoise SDK](https://github.com/opendp/smartnoise-sdk)
+- [OpenMined PyDP](https://github.com/OpenMined/PyDP)
+- [OpenMined PySyft](https://github.com/OpenMined/PySyft)
+- [Private-AI blog post](https://www.private-ai.com/en/blog/the-basics-of-differential-privacy-its-applicability-to-nlu-models)
+- [PyTorch Opacus](https://github.com/pytorch/opacus)
+- [Wikipedia – Differential privacy](https://en.wikipedia.org/wiki/Differential_privacy)
